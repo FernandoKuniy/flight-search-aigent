@@ -1,7 +1,13 @@
 import axios from "axios";
 import { AmadeusResponse } from "../types/flights";
 
-const AMADEUS_BASE_URL = process.env.AMADEUS_BASE_URL || "https://api.amadeus.com";
+// Normalize base URL: remove trailing slashes and ensure it's a valid URL
+const getBaseUrl = () => {
+  const url = process.env.AMADEUS_BASE_URL || "https://test.api.amadeus.com";
+  return url.replace(/\/+$/, ""); // Remove trailing slashes
+};
+
+const AMADEUS_BASE_URL = getBaseUrl();
 
 let cachedToken: { token: string; expiresAt: number } | null = null;
 
@@ -10,20 +16,41 @@ async function getToken() {
     return cachedToken.token;
   }
 
-  const res = await axios.post(
-    `${AMADEUS_BASE_URL}/v1/security/oauth2/token`,
-    new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: process.env.AMADEUS_API_KEY!,
-      client_secret: process.env.AMADEUS_API_SECRET!
-    })
-  );
+  const apiKey = process.env.AMADEUS_API_KEY;
+  const apiSecret = process.env.AMADEUS_API_SECRET;
 
-  const token = res.data.access_token;
-  const expiresAt = Date.now() + res.data.expires_in * 1000;
+  if (!apiKey || !apiSecret) {
+    throw new Error("AMADEUS_API_KEY and AMADEUS_API_SECRET must be set in environment variables");
+  }
 
-  cachedToken = { token, expiresAt };
-  return token;
+  const tokenUrl = `${AMADEUS_BASE_URL}/v1/security/oauth2/token`;
+  
+  try {
+    const res = await axios.post(
+      tokenUrl,
+      new URLSearchParams({
+        grant_type: "client_credentials",
+        client_id: apiKey,
+        client_secret: apiSecret
+      }),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      }
+    );
+
+    const token = res.data.access_token;
+    const expiresAt = Date.now() + res.data.expires_in * 1000;
+
+    cachedToken = { token, expiresAt };
+    return token;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(`Failed to get Amadeus token: ${error.message} - URL: ${tokenUrl}`);
+    }
+    throw error;
+  }
 }
 
 export type AmadeusSearchParams = {
@@ -39,13 +66,40 @@ export type AmadeusSearchParams = {
 export async function searchFlights(params: AmadeusSearchParams): Promise<AmadeusResponse> {
   const token = await getToken();
 
-  const res = await axios.get<AmadeusResponse>(
-    `${AMADEUS_BASE_URL}/v2/shopping/flight-offers`,
-    {
-      headers: { Authorization: `Bearer ${token}` },
-      params
+  const searchUrl = `${AMADEUS_BASE_URL}/v2/shopping/flight-offers`;
+  
+  // Filter out undefined values from params
+  const cleanParams: Record<string, string | number> = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      cleanParams[key] = value;
     }
-  );
+  });
 
-  return res.data;
+  try {
+    const res = await axios.get<AmadeusResponse>(
+      searchUrl,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        params: cleanParams
+      }
+    );
+
+    return res.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      const errorDetails = error.response?.data 
+        ? JSON.stringify(error.response.data, null, 2)
+        : error.message;
+      const errorMessage = `Failed to search flights: ${error.message} - URL: ${searchUrl}`;
+      console.error("Amadeus API Error:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        params: cleanParams
+      });
+      throw new Error(`${errorMessage}\nDetails: ${errorDetails}`);
+    }
+    throw error;
+  }
 }
