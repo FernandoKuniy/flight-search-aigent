@@ -7,11 +7,13 @@ export type SearchParams = {
     cabin: string;
   };
   
-  export type FlightSegment = {
+export type FlightSegment = {
     carrierCode: string;
     number: string;
     departure: string;
     arrival: string;
+    departureAirport: string;
+    arrivalAirport: string;
     duration: string;
   };
   
@@ -20,9 +22,11 @@ export type SearchParams = {
     carrierCode: string;
     number: string;
     departure: {
+      iataCode: string;
       at: string;
     };
     arrival: {
+      iataCode: string;
       at: string;
     };
     duration: string;
@@ -48,13 +52,14 @@ export type SearchParams = {
     data: AmadeusOffer[];
   };
   
-  export type FlightOffer = {
+export type FlightOffer = {
     id: string;
     price: number;
     currency: string;
     segments: FlightSegment[];
     totalDuration: string;
     stops: number;
+    bookingUrl: string;
     raw: AmadeusOffer;
   };
   

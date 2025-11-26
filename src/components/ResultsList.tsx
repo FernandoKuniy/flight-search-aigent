@@ -35,6 +35,14 @@ export default function ResultsList() {
           <p>
             <strong>{offer.price} {offer.currency}</strong> • {offer.stops} stops • {offer.totalDuration}
           </p>
+          <a
+            href={offer.bookingUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-2 text-blue-600 hover:underline"
+          >
+            Book this flight
+          </a>
         </div>
       ))}
     </div>
