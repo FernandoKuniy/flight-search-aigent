@@ -9,6 +9,7 @@ export type SearchParams = {
   
 export type FlightSegment = {
     carrierCode: string;
+    carrierName: string;
     number: string;
     departure: string;
     arrival: string;
@@ -50,6 +51,9 @@ export type FlightSegment = {
   
   export type AmadeusResponse = {
     data: AmadeusOffer[];
+    dictionaries?: {
+      carriers?: Record<string, string>;
+    };
   };
   
 export type FlightOffer = {

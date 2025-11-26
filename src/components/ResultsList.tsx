@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FlightOffer } from "@/lib/types/flights";
+import FlightCard from "./FlightCard";
 
 type SearchResponse = {
   results: FlightOffer[];
@@ -31,19 +32,7 @@ export default function ResultsList() {
       )}
 
       {results.results.map((offer: FlightOffer) => (
-        <div key={offer.id} className="p-4 border rounded">
-          <p>
-            <strong>{offer.price} {offer.currency}</strong> • {offer.stops} stops • {offer.totalDuration}
-          </p>
-          <a
-            href={offer.bookingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block mt-2 text-blue-600 hover:underline"
-          >
-            Book this flight
-          </a>
-        </div>
+        <FlightCard key={offer.id} offer={offer} />
       ))}
     </div>
   );
